@@ -1,141 +1,115 @@
-# GeneDisco: A benchmark for active learning in drug discovery
+# GeneDiscoX
 
-![Python version](https://img.shields.io/badge/Python-3.8-blue)
-![Library version](https://img.shields.io/badge/Version-1.0.5-blue)
+*GeneDiscoX* is an enhanced fork of the [GeneDisco](https://github.com/genedisco/genedisco) benchmarking framework for **active learning in gene discovery** and high-throughput experimental design. This fork introduces **DiscoBAX**, a novel Bayesian optimization strategy, and adapts the pipeline from BoTorch/PyTorch to **JAX** for improved performance on GPU hardware. This project grew out of collaborative work with a longevity-focused biotechnology startup, aiming to expedite the discovery of gene targets and mechanisms relevant to aging and other complex phenotypes.
 
-In vitro cellular experimentation with genetic interventions, using for example CRISPR technologies, is an essential 
-step in early-stage drug discovery and target validation that serves to assess initial hypotheses about causal 
-associations between biological mechanisms and disease pathologies. With billions of potential hypotheses to test, 
-the experimental design space for in vitro genetic experiments is extremely vast, and the available experimental 
-capacity - even at the largest research institutions in the world - pales in relation to the size of this biological 
-hypothesis space. 
+---
 
-[GeneDisco (published at ICLR-22)](https://arxiv.org/abs/2110.11875) is a benchmark suite for evaluating active learning algorithms for experimental design in drug discovery. 
-GeneDisco contains a curated set of multiple publicly available experimental data sets as well as open-source i
-mplementations of state-of-the-art active learning policies for experimental design and exploration.
+## Scientific Motivation & Relevance
 
-## GeneDisco ICLR-22 Challenge
+Selecting which genetic perturbations (e.g., CRISPR knockouts, drug hits) to test from a large search space is a central challenge in computational biology and translational research. **Active learning** can help triage these possibilities, focusing on interventions that are most informative about the underlying biological system.
 
-Learn more about the GeneDisco challenge for experimental design for optimally exploring the vast genetic intervention space [here](https://www.gsk.ai/genedisco-challenge/).
+Originally, **GeneDisco** provided a flexible framework to benchmark different acquisition and modeling strategies for experimental design and gene discovery tasks (e.g. sifting through potential therapeutic targets). In *GeneDiscoX*, we extend those capabilities:
 
-## Install
+1. **New DiscoBAX Algorithm**: Incorporates a Bayesian lookahead that balances exploration of uncertain gene pathways with exploitation of known high-impact regions.  
+2. **Two-Stage Selection**: Improves upon the original subset selection strategy. We first apply DiscoBAX to identify top candidate interventions, then apply a JAX-based *Mini-Batch K-Means* to ensure coverage of diverse biological mechanisms.  
+3. **JAX Acceleration**: Replaces PyTorch/BoTorch backends with JAX (notably, [GPJax](https://github.com/pyMCLabs/GPJax)) for GPU acceleration and just-in-time compilation. This yields efficiency gains when scaling to larger or more complex datasets.
+
+As such, *GeneDiscoX* aligns strongly with the demands of modern high-throughput biology, where *in silico* strategies must handle large candidate pools, parallel GPU acceleration, and sophisticated Bayesian modeling.
+
+---
+
+## Key Features and Contributions
+
+1. **DiscoBAX Acquisition Strategy**  
+   - **Bayesian Active Exploration**: Monte Carlo sampling from a GP (or neural model) identifies candidates likely to yield major improvements on the target phenotype.  
+   - **Diverse Mechanism Coverage**: The two-step procedure ensures experiments come from multiple mechanistic “clusters,” reducing redundancy.  
+   - **Downstream Utility**: Ideal for drug discovery, target identification, or longevity gene screens—where different mechanistic pathways can be highly synergistic or require independent validation.
+
+2. **Full JAX Pipeline**  
+   - **GPJax Surrogate Models**: Sparse or exact Gaussian Processes with GPU support, beneficial for large-scale CRISPR-based or drug library tasks.  
+   - **Mini-Batch K-Means in JAX**: Pure JAX implementation for Stage 2 clustering, minimizing data transfers and enabling an end-to-end GPU pipeline.  
+   - **Reduced Dependencies**: While the original GeneDisco required BoTorch/PyTorch, *GeneDiscoX* mostly runs in a JAX environment, simplifying the computational stack.
+
+3. **Biologically Motivated Benchmarks**  
+   - **Single-Cell & Functional Genomics Data**: Provides example tasks (e.g., `single_cell_cycle`) for quick exploration.  
+   - **Easily Extended**: One may integrate custom phenotypic or omics datasets by following the standard `AbstractDataSource` interface from SlingPy.
+
+4. **Robust Software Engineering**  
+   - **Modular Abstractions**: Pipeline code is structured so new models, acquisition functions, or clustering strategies can be swapped in.  
+   - **Conda Environment & GPU Setup**: Straightforward scripts ensure minimal friction for HPC or local GPU usage.
+
+---
+
+## Installation & Setup
+
+We recommend a **Miniconda** environment with Python ≥ 3.9:
 
 ```bash
-pip install genedisco
+conda create -n genediscox python=3.9 -y
+conda activate genediscox
 ```
 
-## Use
+**Install JAX with CUDA** (if your system has a compatible GPU):
 
-### How to Run the Full Benchmark Suite?
-
-Experiments (all baselines, acquisition functions, input and target datasets, multiple seeds) included in GeneDisco can be executed sequentially for e.g. acquired batch size `64`, `8` cycles and a `bayesian_mlp` model using:
 ```bash
-run_experiments \
-  --cache_directory=/path/to/genedisco_cache  \
-  --output_directory=/path/to/genedisco_output  \
-  --acquisition_batch_size=64  \
-  --num_active_learning_cycles=8  \
-  --max_num_jobs=1
+pip install --upgrade pip
+pip install --upgrade "jax[cuda]" \
+  -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
-Results are written to the folder at `/path/to/genedisco_cache`, and processed datasets will be cached at `/path/to/genedisco_cache` (please replace both with your desired paths) for faster startup in future invocations.
 
+Then clone and install *GeneDiscoX*:
 
-Note that due to the number of experiments being run by the above command, we recommend execution on a compute cluster.<br/>
-The GeneDisco codebase also supports execution on slurm compute clusters (the `slurm` command must be available on the executing node) using the following command and using dependencies in a Python virtualenv available at `/path/to/your/virtualenv` (please replace with your own virtualenv path):
 ```bash
-run_experiments \
-  --cache_directory=/path/to/genedisco_cache  \
-  --output_directory=/path/to/genedisco_output  \
-  --acquisition_batch_size=64  \
-  --num_active_learning_cycles=8  \
-  --schedule_on_slurm \
-  --schedule_children_on_slurm \
-  --remote_execution_virtualenv_path=/path/to/your/virtualenv
+git clone https://github.com/YourUserName/GeneDiscoX.git
+cd GeneDiscoX
+pip install -e .
 ```
 
-Other scheduling systems are currently not supported by default.
+If the installation completes successfully, you can confirm GPU availability:
 
-### How to Run A Single Isolated Experiment (One Learning Cycle)?
-
-To run one active learning loop cycle, for example, with the `"topuncertain"` acquisition function, the `"achilles"` feature set and
-the `"schmidt_2021_ifng"` task, execute the following command:
 ```bash
-active_learning_loop  \
-    --cache_directory=/path/to/genedisco/genedisco_cache \
-    --output_directory=/path/to/genedisco/genedisco_output \
-    --model_name="bayesian_mlp" \
-    --acquisition_function_name="topuncertain" \
-    --acquisition_batch_size=64 \
-    --num_active_learning_cycles=8 \
-    --feature_set_name="achilles" \
-    --dataset_name="schmidt_2021_ifng" 
+python -c "import jax; print(jax.devices())"
 ```
 
+---
 
-### How to Evaluate a Custom Acquisition Function?
+## Quickstart: Running an Experiment
 
-To run a custom acquisition function, set `--acquisition_function_name="custom"` and `--acquisition_function_path` to the file path that contains your custom acquisition function.
+Below is a minimal command to run an active learning loop on a built-in benchmark (e.g. `single_cell_cycle`), using our **JAX-based GP** model and **DiscoBAX** acquisition:
+
 ```bash
-active_learning_loop  \
-    --cache_directory=/path/to/genedisco/genedisco_cache \
-    --output_directory=/path/to/genedisco/genedisco_output \
-    --model_name="bayesian_mlp" \
-    --acquisition_function_name="custom" \
-    --acquisition_function_path=/path/to/custom_acquisition_function.py \
-    --acquisition_batch_size=64 \
-    --num_active_learning_cycles=8 \
-    --feature_set_name="achilles" \
-    --dataset_name="schmidt_2021_ifng" 
+python run_pipeline.py \
+  --dataset_name="single_cell_cycle" \
+  --feature_set_name="achilles" \
+  --model_name="jax_sparse_gp" \
+  --acquisition_function_name="custom" \
+  --acquisition_function_path="genedisco/active_learning_methods/acquisition_functions/disco_bax_two_stage_jax.py" \
+  --acquisition_batch_size=64 \
+  --num_active_learning_cycles=8
 ```
 
-...where `"/path/to/custom_acquisition_function.py"` contains code for your custom acquisition function corresponding to the [BaseBatchAcquisitionFunction interface](genedisco/active_learning_methods/acquisition_functions/base_acquisition_function.py), e.g.:
+Explanation:
 
-```python
-import numpy as np
-from typing import AnyStr, List
-from slingpy import AbstractDataSource
-from slingpy.models.abstract_base_model import AbstractBaseModel
-from genedisco.active_learning_methods.acquisition_functions.base_acquisition_function import \
-    BaseBatchAcquisitionFunction
+- **`--model_name="jax_sparse_gp"`**: Uses a custom JAX-based Gaussian Process model (GPJax) for training each cycle.  
+- **`--acquisition_function_name="custom"` + `--acquisition_function_path="..."`**: Dynamically loads the two-stage DiscoBAX approach outlined in `disco_bax_two_stage_jax.py`.  
+- **`--acquisition_batch_size=64`** and `--num_active_learning_cycles=8` specify how many new gene interventions are chosen each cycle, and how many cycles the pipeline will run.  
 
-class RandomBatchAcquisitionFunction(BaseBatchAcquisitionFunction):
-    def __call__(self,
-                 dataset_x: AbstractDataSource,
-                 batch_size: int,
-                 available_indices: List[AnyStr], 
-                 last_selected_indices: List[AnyStr] = None, 
-                 model: AbstractBaseModel = None,
-                 temperature: float = 0.9,
-                 ) -> List:
-        selected = np.random.choice(available_indices, size=batch_size, replace=False)
-        return selected
-```
-Note that the last class implementing `BaseBatchAcquisitionFunction` is loaded by GeneDisco if there are multiple valid acquisition functions present in the loaded file.
+The pipeline logs progress to your console or specified output folder. On each cycle, the GP is retrained with newly “observed” data, and the DiscoBAX routine proposes the next batch of experiments. By the final cycle, you can examine a set of gene hits that are predicted to be **both impactful and diverse** in their modes of action.
 
-## Citation
+---
 
-Please consider citing, if you reference or use our methodology, code or results in your work:
+## Current Status & Future Directions
 
-    @inproceedings{mehrjou2022genedisco,
-        title={{GeneDisco: A Benchmark for Experimental Design in Drug Discovery}},
-        author={Mehrjou, Arash and Soleymani, Ashkan and Jesson, Andrew and Notin, Pascal and Gal, Yarin and Bauer, Stefan and Schwab, Patrick},
-        booktitle={{International Conference on Learning Representations (ICLR)}},
-        year={2022}
-    }
+- **Validation**: The approach has been tested on standard GeneDisco tasks, showing robust performance in discovering multiple pathways of interest. Early experiments indicate that two-stage DiscoBAX yields broader coverage of potential gene hits than a purely value-seeking approach.  
+- **Next Steps**: Plans include integrating more advanced kernel structures (e.g. multi-task GPs) and an ensemble-based approach for modeling epistatic interactions. We also aim to expand the library of built-in benchmarks to cover more single-cell data sets and applied problems like synergy-based drug screening.  
+- **Open to Collaboration**: We welcome feedback or collaborations from the computational biology community. If you have a specialized dataset or a new acquisition idea, feel free to open an issue or discuss merging contributions.
 
-### License
+---
 
-[License](LICENSE.txt)
+## Author and Contact
 
-### Authors
+**GeneDiscoX** was developed by Anass Bellachehab, a researcher with a Ph.D. in computer sience and pincipal scientific computing enginieer at Synchrotron Soleil radiation source in the Paris area in France. The project emerged out of consulting work for a biotech startup in longevity, aiming to automate gene discovery for age-related disease models. The JAX-based DiscoBAX pipeline highlights a **strong interest in healthcare** applications, along with **robust software engineering** under GPU-accelerated frameworks. My broader research focuses on integrating Bayesian deep learning with biomedical data to expedite translational findings. 
 
-Patrick Schwab, GlaxoSmithKline plc<br/>
-Arash Mehrjou, GlaxoSmithKline plc<br/>
-Andrew Jesson, University of Oxford<br/>
-Ashkan Soleymani, MIT
+If you’re interested in discussing advanced experimental design, neural surrogates for genomics, or collaborative projects, please feel free to reach out (see [GitHub profile](https://github.com/YourUserName) or email in the repo info).
 
-### Acknowledgements
-
-PS and AM are employees and shareholders of GlaxoSmithKline plc.
-
-https://github.com/BlackHC/batchbald_redux contributed code for ConsistentMCDropout.
+---
