@@ -108,7 +108,7 @@ The pipeline logs progress to your console or specified output folder. On each c
 
 ## Author and Contact
 
-**GeneDiscoX** was developed by Anass Bellachehab, a researcher with a Ph.D. in computer sience and pincipal scientific computing enginieer at Synchrotron Soleil radiation source in the Paris area in France. The project emerged out of consulting work for a biotech startup in longevity, aiming to automate gene discovery for age-related disease models. The JAX-based DiscoBAX pipeline highlights a **strong interest in healthcare** applications, along with **robust software engineering** under GPU-accelerated frameworks. My broader research focuses on integrating Bayesian deep learning with biomedical data to expedite translational findings. 
+**GeneDiscoX** was developed by **Anass Bellachehab**, a researcher with a Ph.D. in computer sience and pincipal scientific computing enginieer at Synchrotron Soleil radiation source in the Paris area in France. The project emerged out of consulting work for a biotech startup in longevity, aiming to automate gene discovery for age-related disease models. The JAX-based DiscoBAX pipeline highlights a **strong interest in healthcare** applications, along with **robust software engineering** under GPU-accelerated frameworks. My broader research focuses on integrating Bayesian deep learning with biomedical data to expedite translational findings. 
 
 If you’re interested in discussing advanced experimental design, neural surrogates for genomics, or collaborative projects, please feel free to reach out (see [GitHub profile](https://github.com/YourUserName) or email in the repo info).
 
