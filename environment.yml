@@ -1,0 +1,52 @@
+name: genediscox
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Core system packages and Python version
+  - python=3.10
+  - pip>=23.0
+
+  # GPU/CUDA environment for JAX (on conda-forge)
+  # This ensures basic CUDA libraries are present if you rely on conda's cudatoolkit.
+  # If you have system-wide CUDA 12.2 installed, you can omit "cudatoolkit" or pin a specific version:
+  - cudatoolkit=12.2
+
+  # Some packages can be installed directly via conda. For consistency with pinned versions,
+  # we place most critical pins in pip below. We do add scikit-learn / scikit-multilearn, etc.
+  - numpy=1.24
+  - scipy=1.10
+  - scikit-learn=1.3
+  - h5py=3.9
+  - numba=0.58
+  - six=1.16
+  - scikit-learn>=0.22.2
+  - torch>=1.7.1
+  - toma>=1.1.0
+  - cmapPy>=4.0.1
+  - xxhash>=2.0.0
+  - requests>=2.26.0
+  - seaborn>=0.11.2
+  - pip:
+    # (1) Install JAX with CUDA 12.2 wheels (GPU approach)
+    # The line below ensures jax + jaxlib pinned for CUDA 12.2.
+    # If you do not want or have GPU, comment it out and use the CPU fallback line instead.
+    - "jax[cuda12_pip]==0.4.23 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
+    # CPU fallback (comment out the above GPU line, uncomment the below):
+    # - "jax==0.4.23"
+
+    # (2) Install GPJax + pinned deps
+    - "GPJax==0.9.4"
+    - "optax==0.2.2"
+    - "flax==0.8.2"
+    - "jaxopt==0.8.2"
+    - "jaxtyping==0.3.0"
+    - "tensorflow-probability==0.24.0"
+    - "beartype==0.19.0"
+    - "cola-ml==0.0.5"
+    - "tqdm==4.66.6"
+    - "scikit-multilearn==0.2.0"
+    - "dataclasses-json==0.6.7"
+
+    # (3) Install GeneDisco from main branch on GitHub
+    - "git+https://github.com/genedisco/genedisco.git"
