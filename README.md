@@ -60,7 +60,7 @@ pip install --upgrade "jax[cuda]" \
 Then clone and install *GeneDiscoX*:
 
 ```bash
-git clone https://github.com/YourUserName/GeneDiscoX.git
+git clone https://github.com/EBellache/GeneDiscoX.git
 cd GeneDiscoX
 pip install -e .
 ```
